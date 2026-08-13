@@ -10,31 +10,50 @@ Private Sub GerarFichaTecnica(sender As Object, e As EventArgs)
             Return
         End If
 
-        Dim mensagens As New List(Of String)()
+        If String.IsNullOrWhiteSpace(txtPastaModelo.Text) OrElse Not Directory.Exists(txtPastaModelo.Text) Then
+            MessageBox.Show(
+                "Selecione a pasta do modelo antes de gerar a ficha técnica.",
+                "Ficha Técnica",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            )
+            Return
+        End If
 
-        mensagens.Add("FICHA TÉCNICA - TESTE")
-        mensagens.Add("")
-        mensagens.Add("Código: " & txtCodigo.Text.Trim())
-        mensagens.Add("Nome do modelo: " & txtNomeModelo.Text.Trim())
-        mensagens.Add("Tipo de serviço: " & cboTipoServico.Text.Trim())
-        mensagens.Add("Componente: " & txtComponente.Text.Trim())
-        mensagens.Add("")
-        mensagens.Add("Matrizes adicionadas:")
+        Dim caminhoModeloFicha As String = SelecionarModeloFichaTecnica()
 
-        For i As Integer = 0 To matrizes.Count - 1
-            mensagens.Add((i + 1).ToString() & ". " & MontarDescricaoMatriz(matrizes(i)))
-        Next
+        If caminhoModeloFicha = "" Then
+            Return
+        End If
 
-        MostrarMensagens(mensagens)
+        Dim caminhoGerado As String = FichaTecnicaAuxiliar.GerarFichaTeste(
+            caminhoModeloFicha,
+            txtPastaModelo.Text,
+            txtCodigo.Text.Trim(),
+            txtNomeModelo.Text.Trim(),
+            cboTipoServico.Text.Trim(),
+            txtComponente.Text.Trim(),
+            matrizes(0)
+        )
+
+        If caminhoGerado = "" Then
+            Return
+        End If
+
+        MostrarMensagens(New List(Of String) From {
+            "FICHA TÉCNICA GERADA",
+            "",
+            caminhoGerado
+        })
 
         MessageBox.Show(
-            "Botão Gerar Ficha Técnica funcionando." &
-            Environment.NewLine &
-            "Na próxima etapa vamos começar a gerar o Excel.",
+            "Ficha técnica gerada com sucesso.",
             "Ficha Técnica",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information
         )
+
+        Process.Start("explorer.exe", "/select,""" & caminhoGerado & """")
 
     Catch ex As Exception
         MessageBox.Show(
