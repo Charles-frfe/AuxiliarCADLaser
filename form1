@@ -1,1 +1,26 @@
 
+y = txtProjetistaMatriz.Bottom + 14
+
+CriarLabel(painel, "Acabamento da matriz", 20, y)
+
+cboAcabamentoMatriz = New ComboBox()
+cboAcabamentoMatriz.Location = New Point(20, y + 23)
+cboAcabamentoMatriz.Size = New Size(350, 28)
+cboAcabamentoMatriz.DropDownStyle = ComboBoxStyle.DropDownList
+cboAcabamentoMatriz.Items.Add("Fosco")
+cboAcabamentoMatriz.Items.Add("Polido")
+cboAcabamentoMatriz.SelectedIndex = -1
+painel.Controls.Add(cboAcabamentoMatriz)
+
+y += 62
+
+CriarLabel(painel, "Observação da matriz / ficha técnica", 20, y)
+
+txtObservacaoAcabamentoMatriz = New TextBox()
+txtObservacaoAcabamentoMatriz.Location = New Point(20, y + 23)
+txtObservacaoAcabamentoMatriz.Size = New Size(350, 55)
+txtObservacaoAcabamentoMatriz.Multiline = True
+txtObservacaoAcabamentoMatriz.ScrollBars = ScrollBars.Vertical
+painel.Controls.Add(txtObservacaoAcabamentoMatriz)
+
+y = txtObservacaoAcabamentoMatriz.Bottom + 14
