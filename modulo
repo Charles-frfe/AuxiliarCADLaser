@@ -1,25 +1,35 @@
-Private Function SelecionarModeloFichaTecnica() As String
-    Dim caminhosPadrao As New List(Of String) From {
-        Path.Combine(Application.StartupPath, "modelos", "Ficha_Tecnica_Laser.xlsx"),
-        Path.Combine(Application.StartupPath, "modelos", "Ficha_Tecnica_Laser.xlsm")
-    }
+Private Sub PreencherFicha(ws As Object,
+                           codigo As String,
+                           nomeModelo As String,
+                           tipoServico As String,
+                           componente As String,
+                           matriz As MatrizAuxiliar)
 
-    For Each caminho As String In caminhosPadrao
-        If File.Exists(caminho) Then
-            Return caminho
-        End If
-    Next
+    Dim nomeSemCodigo As String = RemoverCodigoDoNome(nomeModelo, codigo)
 
-    Using dialogo As New OpenFileDialog()
-        dialogo.Title = "Selecione o modelo da Ficha Técnica"
-        dialogo.Filter = "Planilhas Excel (*.xlsx;*.xlsm)|*.xlsx;*.xlsm"
-        dialogo.CheckFileExists = True
-        dialogo.RestoreDirectory = True
+    Dim tipoFicha As String = "PILOTO"
 
-        If dialogo.ShowDialog(Me) = DialogResult.OK Then
-            Return dialogo.FileName
-        End If
-    End Using
+    If tipoServico.Trim().ToLower() = "escala" Then
+        tipoFicha = "COLEÇÃO"
+    End If
 
-    Return ""
-End Function
+    Dim componenteFicha As String = matriz.TipoMatriz.Trim().ToUpperInvariant()
+
+    EscreverCelula(ws, "B4", codigo)
+    EscreverCelula(ws, "B6", nomeSemCodigo)
+    EscreverCelula(ws, "H5", tipoFicha)
+
+    EscreverCelula(ws, "C7", componenteFicha)
+
+    EscreverCelula(ws, "L2", matriz.Maquina)
+    EscreverCelula(ws, "B9", matriz.Material)
+    EscreverCelula(ws, "D9", matriz.Eixos)
+    EscreverCelula(ws, "E10", TexturasEmLinha(matriz.TextoTexturas))
+    EscreverCelula(ws, "B11", matriz.Projetista)
+
+    If Not String.IsNullOrWhiteSpace(matriz.ObservacoesAcabamento) Then
+        EscreverCelula(ws, "J17", "OBSERVAÇÕES:" & Environment.NewLine & matriz.ObservacoesAcabamento.Trim())
+    End If
+
+    EscreverCelula(ws, "J24", matriz.Acabamento)
+End Sub
