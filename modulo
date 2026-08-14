@@ -1,18 +1,18 @@
-Private Function FormatarComponenteFicha(componente As String,
-                                         tipoServico As String,
-                                         matriz As MatrizAuxiliar,
-                                         numeroEscala As String) As String
+Private Function TexturasEmLinha(textoTexturas As String) As String
+    If String.IsNullOrWhiteSpace(textoTexturas) Then Return ""
 
-    If String.Equals(If(tipoServico, "").Trim(), "escala", StringComparison.OrdinalIgnoreCase) Then
-        Dim tipoMatrizFicha As String = FormatarTextoFicha(ObterTipoMatrizParaFicha(matriz))
-        Dim numeroFormatado As String = FormatarNumeroEscalaFicha(numeroEscala)
+    Dim texto As String = textoTexturas.Replace(vbCrLf, vbLf).Replace(vbCr, vbLf)
+    Dim linhas As String() = texto.Split(New String() {vbLf}, StringSplitOptions.RemoveEmptyEntries)
 
-        If numeroFormatado <> "" Then
-            Return tipoMatrizFicha & " " & numeroFormatado
+    Dim nomes As New List(Of String)()
+
+    For Each linha As String In linhas
+        Dim nome As String = ExtrairCodigoTexturaFicha(linha)
+
+        If nome <> "" Then
+            nomes.Add(nome)
         End If
+    Next
 
-        Return tipoMatrizFicha
-    End If
-
-    Return FormatarTextoFicha(componente)
+    Return String.Join(" ", nomes.ToArray())
 End Function
