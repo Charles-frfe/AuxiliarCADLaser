@@ -1,17 +1,18 @@
-Private Sub AdicionarTexturaDetectada(nomeOriginal As String,
-                                      encontradas As List(Of String),
-                                      jaAdicionadas As HashSet(Of String))
-    If String.IsNullOrWhiteSpace(nomeOriginal) Then Return
+Private Function FormatarComponenteFicha(componente As String,
+                                         tipoServico As String,
+                                         matriz As MatrizAuxiliar,
+                                         numeroEscala As String) As String
 
-    Dim nome As String = ExtrairCodigoTextura(nomeOriginal)
+    If String.Equals(If(tipoServico, "").Trim(), "escala", StringComparison.OrdinalIgnoreCase) Then
+        Dim tipoMatrizFicha As String = FormatarTextoFicha(ObterTipoMatrizParaFicha(matriz))
+        Dim numeroFormatado As String = FormatarNumeroEscalaFicha(numeroEscala)
 
-    If nome = "" Then Return
+        If numeroFormatado <> "" Then
+            Return tipoMatrizFicha & " " & numeroFormatado
+        End If
 
-    Dim nomeLimpo As String = ModuloFuncoes.LimparNomePasta(nome)
+        Return tipoMatrizFicha
+    End If
 
-    If nomeLimpo = "" Then Return
-    If jaAdicionadas.Contains(nomeLimpo) Then Return
-
-    jaAdicionadas.Add(nomeLimpo)
-    encontradas.Add(nome.ToUpperInvariant())
-End Sub
+    Return FormatarTextoFicha(componente)
+End Function
