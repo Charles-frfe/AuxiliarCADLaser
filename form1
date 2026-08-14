@@ -1,66 +1,42 @@
-Private Sub GerarFichaTecnica(sender As Object, e As EventArgs)
+Private Function FormatarComponenteFicha(componente As String,
+                                         tipoServico As String,
+                                         matriz As MatrizAuxiliar) As String
+
+    Dim texto As String = If(componente, "").Trim()
+
+    texto = texto.Replace("_", " ")
+    texto = texto.Replace("-", " ")
+
+    While texto.Contains("  ")
+        texto = texto.Replace("  ", " ")
+    End While
+
+    texto = texto.Trim().ToUpperInvariant()
+
+    If String.Equals(If(tipoServico, "").Trim(), "escala", StringComparison.OrdinalIgnoreCase) Then
+        Dim numero As String = ObterPrimeiroNumeroEscala(matriz)
+
+        If numero <> "" Then
+            texto &= " " & numero.ToUpperInvariant()
+        End If
+    End If
+
+    Return texto
+End Function
+
+Private Function ObterPrimeiroNumeroEscala(matriz As MatrizAuxiliar) As String
+    If matriz Is Nothing OrElse String.IsNullOrWhiteSpace(matriz.TextoNumeros) Then
+        Return ""
+    End If
+
     Try
-        If matrizes Is Nothing OrElse matrizes.Count = 0 Then
-            MessageBox.Show(
-                "Adicione pelo menos uma matriz antes de gerar a ficha técnica.",
-                "Ficha Técnica",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            )
-            Return
+        Dim numeros As List(Of String) = ModuloFuncoes.QuebrarNumerosPorVirgula(matriz.TextoNumeros)
+
+        If numeros.Count > 0 Then
+            Return numeros(0)
         End If
-
-        If String.IsNullOrWhiteSpace(txtPastaModelo.Text) OrElse Not Directory.Exists(txtPastaModelo.Text) Then
-            MessageBox.Show(
-                "Selecione a pasta do modelo antes de gerar a ficha técnica.",
-                "Ficha Técnica",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            )
-            Return
-        End If
-
-        Dim caminhoModeloFicha As String = SelecionarModeloFichaTecnica()
-
-        If caminhoModeloFicha = "" Then
-            Return
-        End If
-
-        Dim caminhoGerado As String = FichaTecnicaAuxiliar.GerarFichaTeste(
-            caminhoModeloFicha,
-            txtPastaModelo.Text,
-            txtCodigo.Text.Trim(),
-            txtNomeModelo.Text.Trim(),
-            cboTipoServico.Text.Trim(),
-            txtComponente.Text.Trim(),
-            matrizes(0)
-        )
-
-        If caminhoGerado = "" Then
-            Return
-        End If
-
-        MostrarMensagens(New List(Of String) From {
-            "FICHA TÉCNICA GERADA",
-            "",
-            caminhoGerado
-        })
-
-        MessageBox.Show(
-            "Ficha técnica gerada com sucesso.",
-            "Ficha Técnica",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Information
-        )
-
-        Process.Start("explorer.exe", "/select,""" & caminhoGerado & """")
-
-    Catch ex As Exception
-        MessageBox.Show(
-            ex.Message,
-            "Ficha Técnica",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Error
-        )
+    Catch
     End Try
-End Sub
+
+    Return ""
+End Function
