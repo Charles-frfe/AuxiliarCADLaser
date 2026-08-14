@@ -1,21 +1,17 @@
-Private Function PastaNumeroTemLavPenDireto(pastaNumero As String) As Boolean
-    If String.IsNullOrWhiteSpace(pastaNumero) OrElse Not Directory.Exists(pastaNumero) Then
-        Return False
-    End If
+Private Sub AdicionarTexturaDetectada(nomeOriginal As String,
+                                      encontradas As List(Of String),
+                                      jaAdicionadas As HashSet(Of String))
+    If String.IsNullOrWhiteSpace(nomeOriginal) Then Return
 
-    Dim lav As String = Path.Combine(pastaNumero, "lav")
-    Dim pen As String = Path.Combine(pastaNumero, "pen")
+    Dim nome As String = ExtrairCodigoTextura(nomeOriginal)
 
-    Return Directory.Exists(lav) OrElse Directory.Exists(pen)
-End Function
+    If nome = "" Then Return
 
-Private Function EhPastaOperacionalCN(nomePasta As String) As Boolean
-    If String.IsNullOrWhiteSpace(nomePasta) Then Return False
+    Dim nomeLimpo As String = ModuloFuncoes.LimparNomePasta(nome)
 
-    Dim nome As String = nomePasta.Trim().ToLowerInvariant()
+    If nomeLimpo = "" Then Return
+    If jaAdicionadas.Contains(nomeLimpo) Then Return
 
-    If nome = "lav" Then Return True
-    If nome = "pen" Then Return True
-
-    Return False
-End Function
+    jaAdicionadas.Add(nomeLimpo)
+    encontradas.Add(nome.ToUpperInvariant())
+End Sub
