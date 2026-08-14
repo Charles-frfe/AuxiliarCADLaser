@@ -1,110 +1,131 @@
-Private Sub GerarFichaTecnica(sender As Object, e As EventArgs)
-    Try
-        If matrizes Is Nothing OrElse matrizes.Count = 0 Then
-            MessageBox.Show(
-                "Adicione pelo menos uma matriz antes de gerar a ficha técnica.",
-                "Ficha Técnica",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            )
-            Return
+Private Function SelecionarMatrizesParaNumerosCharmilles(pastasNumerosEscolhidas As List(Of String)) As List(Of String)
+    Dim origens As New List(Of String)()
+
+    If pastasNumerosEscolhidas Is Nothing OrElse pastasNumerosEscolhidas.Count = 0 Then
+        Return origens
+    End If
+
+    Dim todosNumerosComLavPenDireto As Boolean = True
+
+    For Each pastaNumero As String In pastasNumerosEscolhidas
+        If Not Directory.Exists(pastaNumero) Then
+            Throw New DirectoryNotFoundException("A pasta do número não foi encontrada: " & pastaNumero)
         End If
 
-        If String.IsNullOrWhiteSpace(txtPastaModelo.Text) OrElse Not Directory.Exists(txtPastaModelo.Text) Then
-            MessageBox.Show(
-                "Selecione a pasta do modelo antes de gerar a ficha técnica.",
-                "Ficha Técnica",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            )
-            Return
+        If Not PastaNumeroTemLavPenDireto(pastaNumero) Then
+            todosNumerosComLavPenDireto = False
+        End If
+    Next
+
+    If todosNumerosComLavPenDireto Then
+        For Each pastaNumero As String In pastasNumerosEscolhidas
+            origens.Add(pastaNumero)
+        Next
+
+        Return origens
+    End If
+
+    Dim matrizesComuns As HashSet(Of String) = Nothing
+
+    For Each pastaNumero As String In pastasNumerosEscolhidas
+        If Not Directory.Exists(pastaNumero) Then
+            Throw New DirectoryNotFoundException("A pasta do número não foi encontrada: " & pastaNumero)
         End If
 
-        Dim caminhoModeloFicha As String = SelecionarModeloFichaTecnica()
+        Dim matrizesDoNumero As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
 
-        If caminhoModeloFicha = "" Then
-            Return
+        For Each pastaMatriz As String In Directory.GetDirectories(pastaNumero)
+            Dim nomeMatriz As String = New DirectoryInfo(pastaMatriz).Name
+
+            If Not EhPastaOperacionalCN(nomeMatriz) Then
+                matrizesDoNumero.Add(nomeMatriz)
+            End If
+        Next
+
+        If matrizesComuns Is Nothing Then
+            matrizesComuns = matrizesDoNumero
+        Else
+            matrizesComuns.IntersectWith(matrizesDoNumero)
         End If
+    Next
 
-        Dim fichasGeradas As New List(Of String)()
-        Dim ehEscala As Boolean = String.Equals(cboTipoServico.Text.Trim(), "escala", StringComparison.OrdinalIgnoreCase)
+    Dim opcoes As New List(Of OpcaoEscolhaAuxiliar) From {
+        New OpcaoEscolhaAuxiliar() With {
+            .Texto = "Enviar os números completos, com todas as matrizes",
+            .Valor = "__TODAS__"
+        }
+    }
 
-        For Each matriz As MatrizAuxiliar In matrizes
-            If matriz Is Nothing Then Continue For
+    If matrizesComuns IsNot Nothing Then
+        Dim nomesMatrizes As New List(Of String)(matrizesComuns)
+        nomesMatrizes.Sort(StringComparer.OrdinalIgnoreCase)
 
-            If ehEscala Then
-                Dim numeros As List(Of String) = ModuloFuncoes.QuebrarNumerosPorVirgula(matriz.TextoNumeros)
+        For Each nomeMatriz As String In nomesMatrizes
+            opcoes.Add(New OpcaoEscolhaAuxiliar() With {
+                .Texto = "Enviar somente a matriz " & nomeMatriz & " de todos os números selecionados",
+                .Valor = nomeMatriz
+            })
+        Next
+    End If
 
-                For Each numero As String In numeros
-                    Dim caminhoGerado As String = FichaTecnicaAuxiliar.GerarFichaTeste(
-                        caminhoModeloFicha,
-                        txtPastaModelo.Text,
-                        txtCodigo.Text.Trim(),
-                        txtNomeModelo.Text.Trim(),
-                        cboTipoServico.Text.Trim(),
-                        txtComponente.Text.Trim(),
-                        matriz,
-                        numero
-                    )
+    Dim valorEscolhido As String = ""
 
-                    If caminhoGerado <> "" Then
-                        fichasGeradas.Add(caminhoGerado)
+    Using tela As New FormEscolherOpcao(
+        "Conteúdo para o Charmilles",
+        "Escolha o que será validado e enviado para os números selecionados:",
+        opcoes)
+
+        If tela.ShowDialog(Me) = DialogResult.OK Then
+            valorEscolhido = tela.ValorSelecionado
+        End If
+    End Using
+
+    If valorEscolhido = "" Then
+        Return origens
+    End If
+
+    If valorEscolhido = "__TODAS__" Then
+        For Each pastaNumero As String In pastasNumerosEscolhidas
+
+            If PastaNumeroTemLavPenDireto(pastaNumero) Then
+                origens.Add(pastaNumero)
+            Else
+                Dim pastasMatrizesDoNumero As New List(Of String)()
+
+                For Each pastaMatriz As String In Directory.GetDirectories(pastaNumero)
+                    Dim nomeMatriz As String = New DirectoryInfo(pastaMatriz).Name
+
+                    If Not EhPastaOperacionalCN(nomeMatriz) Then
+                        pastasMatrizesDoNumero.Add(pastaMatriz)
                     End If
                 Next
-            Else
-                Dim caminhoGerado As String = FichaTecnicaAuxiliar.GerarFichaTeste(
-                    caminhoModeloFicha,
-                    txtPastaModelo.Text,
-                    txtCodigo.Text.Trim(),
-                    txtNomeModelo.Text.Trim(),
-                    cboTipoServico.Text.Trim(),
-                    txtComponente.Text.Trim(),
-                    matriz
-                )
 
-                If caminhoGerado <> "" Then
-                    fichasGeradas.Add(caminhoGerado)
+                pastasMatrizesDoNumero.Sort(StringComparer.OrdinalIgnoreCase)
+
+                If pastasMatrizesDoNumero.Count = 0 Then
+                    origens.Add(pastaNumero)
+                Else
+                    For Each pastaMatriz As String In pastasMatrizesDoNumero
+                        origens.Add(pastaMatriz)
+                    Next
                 End If
             End If
         Next
 
-        If fichasGeradas.Count = 0 Then
-            MessageBox.Show(
-                "Nenhuma ficha técnica foi gerada.",
-                "Ficha Técnica",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information
-            )
-            Return
+        Return origens
+    End If
+
+    For Each pastaNumero As String In pastasNumerosEscolhidas
+        Dim pastaMatriz As String = Path.Combine(pastaNumero, valorEscolhido)
+
+        If Directory.Exists(pastaMatriz) Then
+            origens.Add(pastaMatriz)
+        Else
+            Throw New Exception(
+                "A matriz """ & valorEscolhido & """ não foi encontrada no número:" &
+                Environment.NewLine & pastaNumero)
         End If
+    Next
 
-        Dim mensagens As New List(Of String)()
-        mensagens.Add("FICHAS TÉCNICAS GERADAS")
-        mensagens.Add("")
-        mensagens.Add("Quantidade: " & fichasGeradas.Count.ToString())
-        mensagens.Add("")
-
-        For Each ficha As String In fichasGeradas
-            mensagens.Add(ficha)
-        Next
-
-        MostrarMensagens(mensagens)
-
-        MessageBox.Show(
-            "Ficha técnica gerada com sucesso.",
-            "Ficha Técnica",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Information
-        )
-
-        Process.Start("explorer.exe", "/select,""" & fichasGeradas(0) & """")
-
-    Catch ex As Exception
-        MessageBox.Show(
-            ex.Message,
-            "Ficha Técnica",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Error
-        )
-    End Try
-End Sub
+    Return origens
+End Function
