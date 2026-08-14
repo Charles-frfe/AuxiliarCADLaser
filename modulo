@@ -1,14 +1,21 @@
-Private Function FormatarTextoFicha(textoOriginal As String) As String
-    If String.IsNullOrWhiteSpace(textoOriginal) Then Return ""
+Private Function PastaNumeroTemLavPenDireto(pastaNumero As String) As Boolean
+    If String.IsNullOrWhiteSpace(pastaNumero) OrElse Not Directory.Exists(pastaNumero) Then
+        Return False
+    End If
 
-    Dim texto As String = textoOriginal.Trim()
+    Dim lav As String = Path.Combine(pastaNumero, "lav")
+    Dim pen As String = Path.Combine(pastaNumero, "pen")
 
-    texto = texto.Replace("_", " ")
-    texto = texto.Replace("-", " ")
+    Return Directory.Exists(lav) OrElse Directory.Exists(pen)
+End Function
 
-    While texto.Contains("  ")
-        texto = texto.Replace("  ", " ")
-    End While
+Private Function EhPastaOperacionalCN(nomePasta As String) As Boolean
+    If String.IsNullOrWhiteSpace(nomePasta) Then Return False
 
-    Return texto.Trim().ToUpperInvariant()
+    Dim nome As String = nomePasta.Trim().ToLowerInvariant()
+
+    If nome = "lav" Then Return True
+    If nome = "pen" Then Return True
+
+    Return False
 End Function
