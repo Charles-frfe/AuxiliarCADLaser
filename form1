@@ -1,19 +1,24 @@
-Private Function FormatarNumeroEscalaFicha(numeroOriginal As String) As String
-    If String.IsNullOrWhiteSpace(numeroOriginal) Then Return ""
+Private Function ExtrairCodigoTexturaFicha(textoOriginal As String) As String
+    If String.IsNullOrWhiteSpace(textoOriginal) Then Return ""
 
-    Dim numero As String = numeroOriginal.Trim()
-    Dim partes As String() = numero.Split("-"c)
-    Dim partesFormatadas As New List(Of String)()
+    Dim texto As String = textoOriginal.Trim()
+    Dim textoMin As String = texto.ToLowerInvariant()
 
-    For Each parte As String In partes
-        Dim limpa As String = parte.Trim()
+    Dim prefixos As String() = {"gls_", "gl_", "gs_"}
 
-        If limpa.Length = 4 AndAlso limpa.All(Function(ch) Char.IsDigit(ch)) Then
-            partesFormatadas.Add(limpa.Substring(0, 2) & "/" & limpa.Substring(2, 2))
-        Else
-            partesFormatadas.Add(limpa)
+    For Each prefixo As String In prefixos
+        If textoMin.StartsWith(prefixo) Then
+            Dim fim As Integer = prefixo.Length
+
+            While fim < texto.Length AndAlso Char.IsDigit(texto(fim))
+                fim += 1
+            End While
+
+            If fim > prefixo.Length Then
+                Return texto.Substring(0, fim).ToUpperInvariant()
+            End If
         End If
     Next
 
-    Return String.Join("-", partesFormatadas.ToArray())
+    Return FormatarTextoFicha(texto)
 End Function
