@@ -1,131 +1,24 @@
-Private Function SelecionarMatrizesParaNumerosCharmilles(pastasNumerosEscolhidas As List(Of String)) As List(Of String)
-    Dim origens As New List(Of String)()
+Private Function ExtrairCodigoTextura(nomePasta As String) As String
+    If String.IsNullOrWhiteSpace(nomePasta) Then Return ""
 
-    If pastasNumerosEscolhidas Is Nothing OrElse pastasNumerosEscolhidas.Count = 0 Then
-        Return origens
-    End If
+    Dim nome As String = nomePasta.Trim()
+    Dim nomeMin As String = nome.ToLowerInvariant()
 
-    Dim todosNumerosComLavPenDireto As Boolean = True
+    Dim prefixos As String() = {"gls_", "gl_", "gs_"}
 
-    For Each pastaNumero As String In pastasNumerosEscolhidas
-        If Not Directory.Exists(pastaNumero) Then
-            Throw New DirectoryNotFoundException("A pasta do número não foi encontrada: " & pastaNumero)
-        End If
+    For Each prefixo As String In prefixos
+        If nomeMin.StartsWith(prefixo) Then
+            Dim fim As Integer = prefixo.Length
 
-        If Not PastaNumeroTemLavPenDireto(pastaNumero) Then
-            todosNumerosComLavPenDireto = False
-        End If
-    Next
+            While fim < nome.Length AndAlso Char.IsDigit(nome(fim))
+                fim += 1
+            End While
 
-    If todosNumerosComLavPenDireto Then
-        For Each pastaNumero As String In pastasNumerosEscolhidas
-            origens.Add(pastaNumero)
-        Next
-
-        Return origens
-    End If
-
-    Dim matrizesComuns As HashSet(Of String) = Nothing
-
-    For Each pastaNumero As String In pastasNumerosEscolhidas
-        If Not Directory.Exists(pastaNumero) Then
-            Throw New DirectoryNotFoundException("A pasta do número não foi encontrada: " & pastaNumero)
-        End If
-
-        Dim matrizesDoNumero As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
-
-        For Each pastaMatriz As String In Directory.GetDirectories(pastaNumero)
-            Dim nomeMatriz As String = New DirectoryInfo(pastaMatriz).Name
-
-            If Not EhPastaOperacionalCN(nomeMatriz) Then
-                matrizesDoNumero.Add(nomeMatriz)
+            If fim > prefixo.Length Then
+                Return nome.Substring(0, fim).ToUpperInvariant()
             End If
-        Next
-
-        If matrizesComuns Is Nothing Then
-            matrizesComuns = matrizesDoNumero
-        Else
-            matrizesComuns.IntersectWith(matrizesDoNumero)
         End If
     Next
 
-    Dim opcoes As New List(Of OpcaoEscolhaAuxiliar) From {
-        New OpcaoEscolhaAuxiliar() With {
-            .Texto = "Enviar os números completos, com todas as matrizes",
-            .Valor = "__TODAS__"
-        }
-    }
-
-    If matrizesComuns IsNot Nothing Then
-        Dim nomesMatrizes As New List(Of String)(matrizesComuns)
-        nomesMatrizes.Sort(StringComparer.OrdinalIgnoreCase)
-
-        For Each nomeMatriz As String In nomesMatrizes
-            opcoes.Add(New OpcaoEscolhaAuxiliar() With {
-                .Texto = "Enviar somente a matriz " & nomeMatriz & " de todos os números selecionados",
-                .Valor = nomeMatriz
-            })
-        Next
-    End If
-
-    Dim valorEscolhido As String = ""
-
-    Using tela As New FormEscolherOpcao(
-        "Conteúdo para o Charmilles",
-        "Escolha o que será validado e enviado para os números selecionados:",
-        opcoes)
-
-        If tela.ShowDialog(Me) = DialogResult.OK Then
-            valorEscolhido = tela.ValorSelecionado
-        End If
-    End Using
-
-    If valorEscolhido = "" Then
-        Return origens
-    End If
-
-    If valorEscolhido = "__TODAS__" Then
-        For Each pastaNumero As String In pastasNumerosEscolhidas
-
-            If PastaNumeroTemLavPenDireto(pastaNumero) Then
-                origens.Add(pastaNumero)
-            Else
-                Dim pastasMatrizesDoNumero As New List(Of String)()
-
-                For Each pastaMatriz As String In Directory.GetDirectories(pastaNumero)
-                    Dim nomeMatriz As String = New DirectoryInfo(pastaMatriz).Name
-
-                    If Not EhPastaOperacionalCN(nomeMatriz) Then
-                        pastasMatrizesDoNumero.Add(pastaMatriz)
-                    End If
-                Next
-
-                pastasMatrizesDoNumero.Sort(StringComparer.OrdinalIgnoreCase)
-
-                If pastasMatrizesDoNumero.Count = 0 Then
-                    origens.Add(pastaNumero)
-                Else
-                    For Each pastaMatriz As String In pastasMatrizesDoNumero
-                        origens.Add(pastaMatriz)
-                    Next
-                End If
-            End If
-        Next
-
-        Return origens
-    End If
-
-    For Each pastaNumero As String In pastasNumerosEscolhidas
-        Dim pastaMatriz As String = Path.Combine(pastaNumero, valorEscolhido)
-
-        If Directory.Exists(pastaMatriz) Then
-            origens.Add(pastaMatriz)
-        Else
-            Throw New Exception(
-                "A matriz """ & valorEscolhido & """ não foi encontrada no número:" &
-                Environment.NewLine & pastaNumero)
-        End If
-    Next
-
-    Return origens
+    Return nome.ToUpperInvariant()
 End Function
