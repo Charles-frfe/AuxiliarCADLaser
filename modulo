@@ -1,35 +1,14 @@
-Private Sub PreencherFicha(ws As Object,
-                           codigo As String,
-                           nomeModelo As String,
-                           tipoServico As String,
-                           componente As String,
-                           matriz As MatrizAuxiliar)
+Private Function FormatarTextoFicha(textoOriginal As String) As String
+    If String.IsNullOrWhiteSpace(textoOriginal) Then Return ""
 
-    Dim nomeSemCodigo As String = RemoverCodigoDoNome(nomeModelo, codigo)
+    Dim texto As String = textoOriginal.Trim()
 
-    Dim tipoFicha As String = "PILOTO"
+    texto = texto.Replace("_", " ")
+    texto = texto.Replace("-", " ")
 
-    If tipoServico.Trim().ToLower() = "escala" Then
-        tipoFicha = "COLEÇÃO"
-    End If
+    While texto.Contains("  ")
+        texto = texto.Replace("  ", " ")
+    End While
 
-    Dim componenteFicha As String = matriz.TipoMatriz.Trim().ToUpperInvariant()
-
-    EscreverCelula(ws, "B4", codigo)
-    EscreverCelula(ws, "B6", nomeSemCodigo)
-    EscreverCelula(ws, "H5", tipoFicha)
-
-    EscreverCelula(ws, "C7", componenteFicha)
-
-    EscreverCelula(ws, "L2", matriz.Maquina)
-    EscreverCelula(ws, "B9", matriz.Material)
-    EscreverCelula(ws, "D9", matriz.Eixos)
-    EscreverCelula(ws, "E10", TexturasEmLinha(matriz.TextoTexturas))
-    EscreverCelula(ws, "B11", matriz.Projetista)
-
-    If Not String.IsNullOrWhiteSpace(matriz.ObservacoesAcabamento) Then
-        EscreverCelula(ws, "J17", "OBSERVAÇÕES:" & Environment.NewLine & matriz.ObservacoesAcabamento.Trim())
-    End If
-
-    EscreverCelula(ws, "J24", matriz.Acabamento)
-End Sub
+    Return texto.Trim().ToUpperInvariant()
+End Function
