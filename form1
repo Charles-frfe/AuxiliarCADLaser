@@ -1,24 +1,19 @@
-Private Function ExtrairCodigoTextura(nomePasta As String) As String
-    If String.IsNullOrWhiteSpace(nomePasta) Then Return ""
+Private Function FormatarNumeroEscalaFicha(numeroOriginal As String) As String
+    If String.IsNullOrWhiteSpace(numeroOriginal) Then Return ""
 
-    Dim nome As String = nomePasta.Trim()
-    Dim nomeMin As String = nome.ToLowerInvariant()
+    Dim numero As String = numeroOriginal.Trim()
+    Dim partes As String() = numero.Split("-"c)
+    Dim partesFormatadas As New List(Of String)()
 
-    Dim prefixos As String() = {"gls_", "gl_", "gs_"}
+    For Each parte As String In partes
+        Dim limpa As String = parte.Trim()
 
-    For Each prefixo As String In prefixos
-        If nomeMin.StartsWith(prefixo) Then
-            Dim fim As Integer = prefixo.Length
-
-            While fim < nome.Length AndAlso Char.IsDigit(nome(fim))
-                fim += 1
-            End While
-
-            If fim > prefixo.Length Then
-                Return nome.Substring(0, fim).ToUpperInvariant()
-            End If
+        If limpa.Length = 4 AndAlso limpa.All(Function(ch) Char.IsDigit(ch)) Then
+            partesFormatadas.Add(limpa.Substring(0, 2) & "/" & limpa.Substring(2, 2))
+        Else
+            partesFormatadas.Add(limpa)
         End If
     Next
 
-    Return nome.ToUpperInvariant()
+    Return String.Join("-", partesFormatadas.ToArray())
 End Function
