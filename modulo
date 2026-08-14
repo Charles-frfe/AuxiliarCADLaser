@@ -1,18 +1,37 @@
-Private Function TexturasEmLinha(textoTexturas As String) As String
-    If String.IsNullOrWhiteSpace(textoTexturas) Then Return ""
+Private Function EscreverAoLado(ws As Object,
+                                textoProcurado As String,
+                                valor As String,
+                                Optional vermelho As Boolean = False) As Boolean
+    If String.IsNullOrWhiteSpace(valor) Then Return False
 
-    Dim texto As String = textoTexturas.Replace(vbCrLf, vbLf).Replace(vbCr, vbLf)
-    Dim linhas As String() = texto.Split(New String() {vbLf}, StringSplitOptions.RemoveEmptyEntries)
+    Dim celula As Object = ProcurarCelula(ws, textoProcurado)
 
-    Dim nomes As New List(Of String)()
+    If celula Is Nothing Then
+        Return False
+    End If
 
-    For Each linha As String In linhas
-        Dim nome As String = ExtrairCodigoTexturaFicha(linha)
+    Try
+        Dim area As Object = celula.MergeArea
+        Dim linha As Integer = area.Row
+        Dim colunaDestino As Integer = area.Column + area.Columns.Count
 
-        If nome <> "" Then
-            nomes.Add(nome)
+        Dim destino As Object = ws.Cells(linha, colunaDestino)
+
+        Try
+            If destino.MergeCells Then
+                destino = destino.MergeArea.Cells(1, 1)
+            End If
+        Catch
+        End Try
+
+        destino.Value = valor
+
+        If vermelho Then
+            destino.Font.Color = 255
         End If
-    Next
 
-    Return String.Join(" ", nomes.ToArray())
+        Return True
+    Catch
+        Return False
+    End Try
 End Function
