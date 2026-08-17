@@ -1,37 +1,60 @@
-Private Function EscreverAoLado(ws As Object,
-                                textoProcurado As String,
-                                valor As String,
-                                Optional vermelho As Boolean = False) As Boolean
-    If String.IsNullOrWhiteSpace(valor) Then Return False
+Private Sub ManterSomenteAbasTemporarias(wb As Object, nomesTemporarios As List(Of String))
+    For i As Integer = wb.Worksheets.Count To 1 Step -1
+        Dim ws As Object = wb.Worksheets(i)
+        Dim nome As String = ws.Name.ToString()
 
-    Dim celula As Object = ProcurarCelula(ws, textoProcurado)
+        Dim manter As Boolean = nomesTemporarios.Exists(
+            Function(item As String)
+                Return String.Equals(item, nome, StringComparison.OrdinalIgnoreCase)
+            End Function
+        )
 
-    If celula Is Nothing Then
-        Return False
-    End If
+        If Not manter Then
+            ws.Delete()
+        End If
+    Next
+End Sub
 
-    Try
-        Dim area As Object = celula.MergeArea
-        Dim linha As Integer = area.Row
-        Dim colunaDestino As Integer = area.Column + area.Columns.Count
+Private Sub RenomearAbasGeradas(wb As Object,
+                                nomesTemporarios As List(Of String),
+                                nomesDesejados As List(Of String))
 
-        Dim destino As Object = ws.Cells(linha, colunaDestino)
+    For i As Integer = 0 To nomesTemporarios.Count - 1
+        Dim ws As Object = ObterPlanilha(wb, nomesTemporarios(i))
 
-        Try
-            If destino.MergeCells Then
-                destino = destino.MergeArea.Cells(1, 1)
+        If ws IsNot Nothing Then
+            ws.Name = ObterNomeAbaDisponivel(wb, nomesDesejados(i))
+        End If
+    Next
+End Sub
+
+Private Function ObterNomeAbaDisponivel(wb As Object, nomeBase As String) As String
+    Dim baseLimpa As String = LimitarNomeAba(nomeBase)
+
+    If baseLimpa = "" Then baseLimpa = "Ficha"
+
+    For tentativa As Integer = 0 To 50
+        Dim candidato As String
+
+        If tentativa = 0 Then
+            candidato = baseLimpa
+        Else
+            Dim sufixo As String = " " & (tentativa + 1).ToString()
+            Dim limite As Integer = 31 - sufixo.Length
+
+            candidato = baseLimpa
+
+            If candidato.Length > limite Then
+                candidato = candidato.Substring(0, limite)
             End If
-        Catch
-        End Try
 
-        destino.Value = valor
-
-        If vermelho Then
-            destino.Font.Color = 255
+            candidato &= sufixo
         End If
 
-        Return True
-    Catch
-        Return False
-    End Try
+        If ObterPlanilha(wb, candidato) Is Nothing Then
+            Return candidato
+        End If
+    Next
+
+    Return LimitarNomeAba(baseLimpa & " " & DateTime.Now.ToString("ss"))
 End Function
