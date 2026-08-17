@@ -1,24 +1,129 @@
-Private Function ExtrairCodigoTexturaFicha(textoOriginal As String) As String
-    If String.IsNullOrWhiteSpace(textoOriginal) Then Return ""
+Public Function GerarFichaAgrupada(caminhoModeloFicha As String,
+                                   pastaDestino As String,
+                                   codigo As String,
+                                   nomeModelo As String,
+                                   tipoServico As String,
+                                   componente As String,
+                                   matrizesFicha As List(Of MatrizAuxiliar),
+                                   Optional numeroEscala As String = "") As String
 
-    Dim texto As String = textoOriginal.Trim()
-    Dim textoMin As String = texto.ToLowerInvariant()
+    If String.IsNullOrWhiteSpace(caminhoModeloFicha) OrElse Not File.Exists(caminhoModeloFicha) Then
+        Throw New Exception("Modelo da ficha técnica não encontrado.")
+    End If
 
-    Dim prefixos As String() = {"gls_", "gl_", "gs_"}
+    If matrizesFicha Is Nothing OrElse matrizesFicha.Count = 0 Then
+        Throw New Exception("Nenhuma matriz foi informada para gerar a ficha.")
+    End If
 
-    For Each prefixo As String In prefixos
-        If textoMin.StartsWith(prefixo) Then
-            Dim fim As Integer = prefixo.Length
+    If String.IsNullOrWhiteSpace(pastaDestino) OrElse Not Directory.Exists(pastaDestino) Then
+        Throw New Exception("Pasta de destino da ficha não encontrada.")
+    End If
 
-            While fim < texto.Length AndAlso Char.IsDigit(texto(fim))
-                fim += 1
-            End While
+    Dim extensaoModelo As String = Path.GetExtension(caminhoModeloFicha).ToLowerInvariant()
 
-            If fim > prefixo.Length Then
-                Return texto.Substring(0, fim).ToUpperInvariant()
-            End If
+    If extensaoModelo <> ".xlsx" AndAlso extensaoModelo <> ".xlsm" Then
+        Throw New Exception("O modelo da ficha técnica precisa ser .xlsx ou .xlsm.")
+    End If
+
+    Dim pastaFichas As String = Path.Combine(pastaDestino, "Ficha Técnica")
+    Directory.CreateDirectory(pastaFichas)
+
+    Dim sufixoNumero As String = ""
+
+    If Not String.IsNullOrWhiteSpace(numeroEscala) Then
+        sufixoNumero = "_" & LimparNomeArquivo(numeroEscala)
+    End If
+
+    Dim nomeArquivo As String =
+        "Ficha_Tecnica_" &
+        LimparNomeArquivo(codigo) &
+        sufixoNumero &
+        extensaoModelo
+
+    Dim caminhoSaida As String = Path.Combine(pastaFichas, nomeArquivo)
+
+    If File.Exists(caminhoSaida) Then
+        Dim resposta As DialogResult = MessageBox.Show(
+            "A ficha já existe:" & Environment.NewLine &
+            caminhoSaida & Environment.NewLine & Environment.NewLine &
+            "Deseja substituir?",
+            "Ficha Técnica",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question
+        )
+
+        If resposta <> DialogResult.Yes Then
+            Return ""
         End If
-    Next
 
-    Return FormatarTextoFicha(texto)
+        File.Delete(caminhoSaida)
+    End If
+
+    File.Copy(caminhoModeloFicha, caminhoSaida, True)
+
+    Dim excel As Object = Nothing
+    Dim wb As Object = Nothing
+
+    Try
+        excel = CreateObject("Excel.Application")
+        excel.DisplayAlerts = False
+        excel.Visible = False
+
+        wb = excel.Workbooks.Open(caminhoSaida)
+
+        Dim nomesTemporarios As New List(Of String)()
+        Dim nomesDesejados As New List(Of String)()
+        Dim contador As Integer = 1
+
+        For Each matriz As MatrizAuxiliar In matrizesFicha
+            If matriz Is Nothing Then Continue For
+
+            Dim tipoMatrizFicha As String = ObterTipoMatrizParaFicha(matriz)
+            Dim nomeAbaBase As String = ObterAbaBase(tipoMatrizFicha)
+            Dim abaBase As Object = ObterPlanilha(wb, nomeAbaBase)
+
+            If abaBase Is Nothing Then
+                Throw New Exception("A aba base não foi encontrada na ficha: " & nomeAbaBase)
+            End If
+
+            abaBase.Copy(After:=wb.Worksheets(wb.Worksheets.Count))
+
+            Dim ws As Object = wb.Worksheets(wb.Worksheets.Count)
+            Dim nomeTemporario As String = "__GERADA_" & contador.ToString("000")
+
+            ws.Name = nomeTemporario
+
+            nomesTemporarios.Add(nomeTemporario)
+            nomesDesejados.Add(LimitarNomeAba(tipoMatrizFicha))
+
+            PreencherFicha(ws, codigo, nomeModelo, tipoServico, componente, matriz, numeroEscala)
+
+            contador += 1
+        Next
+
+        ManterSomenteAbasTemporarias(wb, nomesTemporarios)
+        RenomearAbasGeradas(wb, nomesTemporarios, nomesDesejados)
+
+        wb.Save()
+        wb.Close(False)
+        excel.Quit()
+
+        Return caminhoSaida
+
+    Catch
+        Try
+            If wb IsNot Nothing Then wb.Close(False)
+        Catch
+        End Try
+
+        Try
+            If excel IsNot Nothing Then excel.Quit()
+        Catch
+        End Try
+
+        Throw
+    Finally
+        LiberarObjeto(wb)
+        LiberarObjeto(excel)
+    End Try
 End Function
